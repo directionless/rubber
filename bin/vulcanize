@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+require "bundler/setup"
 
 env = ENV['RUBBER_ENV'] ||= 'development'
 root = '.'
