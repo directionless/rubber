@@ -37,6 +37,18 @@ domain: example.com
 # and ip when they are created.  It also allows setting up arbitrary
 # dns records (CNAME, MX, Round Robin DNS, etc)
 
+# OPTIONAL: rubber normally updates both your local machines
+# /etc/hosts and the remote machine's /etc/hosts file with the new
+# machine entries. These variables skip that.
+#
+# You can also, optionally, use the ip address instead of the hostname.
+#
+# Note that if you're not using dns, this may cause later things to break
+# skip_dns_local_aliases: true
+# skip_dns_remote_aliases: true
+# use_ip_for_full_name: true
+
+
 # OPTIONAL: Additional rubber file to pull config from if it exists.  This file will
 # also be pushed to remote host at RUBBER_ROOT/config/rubber/rubber-secret.yml
 #

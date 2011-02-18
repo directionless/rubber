@@ -112,7 +112,7 @@ module Rubber
       end
 
       def full_name
-        "#@name.#@domain"
+        (Rubber::Configuration.rubber_env.use_ip_for_full_name rescue false) ? "#@external_ip" : "#@name.#@domain"
       end
 
       def role_names()

@@ -76,23 +76,27 @@ namespace :rubber do
   required_task :setup_local_aliases do
     hosts_file = '/etc/hosts'
 
-    # Generate /etc/hosts contents for the local machine from instance config
-    delim = "## rubber config #{rubber_env.domain} #{RUBBER_ENV}"
-    local_hosts = delim + "\n"
-    rubber_instances.each do |ic|
-      # don't add unqualified hostname in local hosts file since user may be
-      # managing multiple domains with same aliases
-      hosts_data = [ic.full_name, ic.external_host, ic.internal_host].join(' ')
-      local_hosts << ic.external_ip << ' ' << hosts_data << "\n"
-    end
-    local_hosts << delim << "\n"
+    if (rubber_env.skip_dns_local_aliases rescue nil)
+      logger.info "Skipping update of #{hosts_file}"
+    else
+      # Generate /etc/hosts contents for the local machine from instance config
+      delim = "## rubber config #{rubber_env.domain} #{RUBBER_ENV}"
+      local_hosts = delim + "\n"
+      rubber_instances.each do |ic|
+        # don't add unqualified hostname in local hosts file since user may be
+        # managing multiple domains with same aliases
+        hosts_data = [ic.full_name, ic.external_host, ic.internal_host].join(' ')
+        local_hosts << ic.external_ip << ' ' << hosts_data << "\n"
+      end
+      local_hosts << delim << "\n"
 
-    # Write out the hosts file for this machine, use sudo
-    filtered = File.read(hosts_file).gsub(/^#{delim}.*^#{delim}\n?/m, '')
-    logger.info "Writing out aliases into local machines #{hosts_file}, sudo access needed"
-    Rubber::Util::sudo_open(hosts_file, 'w') do |f|
-      f.write(filtered)
-      f.write(local_hosts)
+      # Write out the hosts file for this machine, use sudo
+      filtered = File.read(hosts_file).gsub(/^#{delim}.*^#{delim}\n?/m, '')
+      logger.info "Writing out aliases into local machines #{hosts_file}, sudo access needed"
+      Rubber::Util::sudo_open(hosts_file, 'w') do |f|
+        f.write(filtered)
+        f.write(local_hosts)
+      end
     end
   end
 
@@ -199,20 +203,23 @@ namespace :rubber do
     end
     remote_hosts << delim << "\n"
     if rubber_instances.size > 0
-      # write out the hosts file for the remote instances
-      # NOTE that we use "capture" to get the existing hosts
-      # file, which only grabs the hosts file from the first host
-      filtered = (capture "cat #{hosts_file}").gsub(/^#{delim}.*^#{delim}\n?/m, '')
-      filtered = filtered + remote_hosts
-      # Put the generated hosts back on remote instance
-      put filtered, hosts_file
+      if (rubber_env.skip_dns_remote_aliases rescue nil)
+        logger.info "Skipping update of remote #{hosts_file}"
+      else
+        # write out the hosts file for the remote instances
+        # NOTE that we use "capture" to get the existing hosts
+        # file, which only grabs the hosts file from the first host
+        filtered = (capture "cat #{hosts_file}").gsub(/^#{delim}.*^#{delim}\n?/m, '')
+        filtered = filtered + remote_hosts
+        # Put the generated hosts back on remote instance
+        put filtered, hosts_file
+      end
 
       # Setup hostname on instance so shell, etcs have nice display
       rsudo "echo $CAPISTRANO:HOST$ > /etc/hostname && hostname $CAPISTRANO:HOST$"
       # Newer ubuntus ec2-init script always resets hostname, so prevent it
       rsudo "mkdir -p /etc/ec2-init && echo compat=0 > /etc/ec2-init/is-compat-env"
     end
-
     # TODO
     # /etc/resolv.conf to add search domain
     # ~/.ssh/options to setup user/host/key aliases
